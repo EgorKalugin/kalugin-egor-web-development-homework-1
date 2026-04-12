@@ -1,0 +1,193 @@
+{
+  "info": {
+    "name": "Catalog Service API",
+    "_postman_id": "catalog-service-v1",
+    "description": "API for managing the light bulb product catalog",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3001", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/categories",
+            "description": "Returns all product categories"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  { \"id\": 1, \"name\": \"LED\", \"description\": \"Energy-efficient LED bulbs\" },\n  { \"id\": 2, \"name\": \"Halogen\", \"description\": \"Halogen bulbs\" }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get category by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/categories/:id",
+            "description": "Returns a single category",
+            "variable": [{ "key": "id", "value": "1" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"id\": 1, \"name\": \"LED\", \"description\": \"Energy-efficient LED bulbs\" }"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{ \"error\": \"Category not found\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                { "key": "category_id", "value": "1", "disabled": true, "description": "Filter by category" },
+                { "key": "page", "value": "1", "disabled": true, "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "20", "disabled": true, "description": "Items per page (default: 20, max: 100)" },
+                { "key": "search", "value": "LED", "disabled": true, "description": "Full-text search" },
+                { "key": "sort", "value": "price_asc", "disabled": true, "description": "Sort: price_asc, price_desc, name_asc" }
+              ]
+            },
+            "description": "Returns paginated list of active products"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"sku\": \"LED-E27-10W-4000K\",\n      \"name\": \"LED Bulb E27 10W 4000K\",\n      \"description\": \"Energy-saving LED bulb\",\n      \"category_id\": 1,\n      \"price\": \"149.00\",\n      \"stock_quantity\": 500,\n      \"image_url\": \"/images/led-e27-10w.jpg\",\n      \"wattage\": 10.0,\n      \"voltage\": 220,\n      \"base_type\": \"E27\",\n      \"color_temp\": 4000,\n      \"lifespan_hours\": 25000\n    }\n  ],\n  \"pagination\": { \"page\": 1, \"limit\": 20, \"total\": 20, \"pages\": 1 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get product by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/products/:id",
+            "description": "Returns full product details including all images",
+            "variable": [{ "key": "id", "value": "1" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": 1,\n  \"sku\": \"LED-E27-10W-4000K\",\n  \"name\": \"LED Bulb E27 10W 4000K\",\n  \"description\": \"Energy-saving LED bulb\",\n  \"category\": { \"id\": 1, \"name\": \"LED\" },\n  \"price\": \"149.00\",\n  \"stock_quantity\": 500,\n  \"images\": [\n    { \"id\": 1, \"url\": \"/images/led-e27-10w.jpg\", \"sort_order\": 0 }\n  ],\n  \"wattage\": 10.0,\n  \"voltage\": 220,\n  \"base_type\": \"E27\",\n  \"color_temp\": 4000,\n  \"lifespan_hours\": 25000\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{ \"error\": \"Product not found\" }"
+            }
+          ]
+        },
+        {
+          "name": "Create product (admin)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/products",
+            "description": "Creates a new product. Requires admin JWT.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"LED-E14-7W-3000K\",\n  \"name\": \"LED Bulb E14 7W 3000K\",\n  \"description\": \"Warm white LED candle bulb\",\n  \"category_id\": 1,\n  \"price\": 119.00,\n  \"stock_quantity\": 300,\n  \"image_url\": \"/images/led-e14-7w.jpg\",\n  \"wattage\": 7.0,\n  \"voltage\": 220,\n  \"base_type\": \"E14\",\n  \"color_temp\": 3000,\n  \"lifespan_hours\": 20000\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{ \"id\": 21, \"sku\": \"LED-E14-7W-3000K\", \"name\": \"LED Bulb E14 7W 3000K\" }"
+            },
+            {
+              "name": "400 Bad Request",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"SKU already exists\" }"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{ \"error\": \"Unauthorized\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update product (admin)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/v1/products/:id",
+            "description": "Updates product fields. Requires admin JWT.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 129.00,\n  \"stock_quantity\": 250\n}"
+            },
+            "variable": [{ "key": "id", "value": "1" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"id\": 1, \"price\": \"129.00\", \"stock_quantity\": 250 }"
+            }
+          ]
+        },
+        {
+          "name": "Delete product (admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/products/:id",
+            "description": "Soft-deletes a product (sets is_active = false). Requires admin JWT.",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "variable": [{ "key": "id", "value": "1" }]
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "status": "No Content",
+              "code": 204,
+              "body": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

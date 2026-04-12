@@ -1,0 +1,251 @@
+{
+  "info": {
+    "name": "Order Service API",
+    "_postman_id": "order-service-v1",
+    "description": "API for cart management, checkout, and order tracking",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3002", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get cart",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/cart",
+            "description": "Returns current cart contents. Identified by session cookie or Authorization header.",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{user_token}}", "disabled": true }
+            ]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": 42,\n  \"items\": [\n    {\n      \"id\": 1,\n      \"product_id\": 5,\n      \"product_name\": \"LED Bulb E27 10W\",\n      \"price\": \"149.00\",\n      \"quantity\": 3,\n      \"subtotal\": \"447.00\"\n    }\n  ],\n  \"total\": \"447.00\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Add item to cart",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/cart/items",
+            "description": "Adds a product to the cart. Creates cart if it doesn't exist.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 5,\n  \"quantity\": 2\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"cart_item_id\": 1, \"product_id\": 5, \"quantity\": 2 }"
+            },
+            {
+              "name": "400 Bad Request — out of stock",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"Insufficient stock\", \"available\": 1 }"
+            },
+            {
+              "name": "404 Not Found — product missing",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{ \"error\": \"Product not found\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update cart item quantity",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/v1/cart/items/:item_id",
+            "description": "Updates quantity of a cart item",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"quantity\": 5 }"
+            },
+            "variable": [{ "key": "item_id", "value": "1" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"cart_item_id\": 1, \"product_id\": 5, \"quantity\": 5 }"
+            }
+          ]
+        },
+        {
+          "name": "Remove item from cart",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/cart/items/:item_id",
+            "description": "Removes a specific item from the cart",
+            "variable": [{ "key": "item_id", "value": "1" }]
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "status": "No Content",
+              "code": 204,
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Clear cart",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/cart",
+            "description": "Removes all items from the cart"
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "status": "No Content",
+              "code": 204,
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create order (checkout)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/orders",
+            "description": "Converts current cart into an order. Reserves stock.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipping_name\": \"Иван Иванов\",\n  \"shipping_phone\": \"+7 900 123-45-67\",\n  \"shipping_email\": \"ivan@example.com\",\n  \"shipping_address\": \"г. Москва, ул. Ленина, д. 1, кв. 5\",\n  \"comment\": \"Позвоните за час до доставки\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"id\": 100,\n  \"status\": \"new\",\n  \"total_amount\": \"447.00\",\n  \"shipping_name\": \"Иван Иванов\",\n  \"shipping_email\": \"ivan@example.com\",\n  \"items\": [\n    { \"product_name\": \"LED Bulb E27 10W\", \"quantity\": 3, \"price_per_unit\": \"149.00\", \"total_price\": \"447.00\" }\n  ],\n  \"created_at\": \"2026-04-12T10:00:00Z\"\n}"
+            },
+            {
+              "name": "400 Bad Request — empty cart",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"Cart is empty\" }"
+            },
+            {
+              "name": "409 Conflict — stock changed",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{ \"error\": \"Some items are no longer available\", \"unavailable\": [5] }"
+            }
+          ]
+        },
+        {
+          "name": "Get order by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/orders/:id",
+            "description": "Returns order details. Guests access via order ID + email verification.",
+            "variable": [{ "key": "id", "value": "100" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"id\": 100,\n  \"status\": \"confirmed\",\n  \"total_amount\": \"447.00\",\n  \"shipping_name\": \"Иван Иванов\",\n  \"shipping_address\": \"г. Москва, ул. Ленина, д. 1, кв. 5\",\n  \"items\": [\n    { \"product_name\": \"LED Bulb E27 10W\", \"quantity\": 3, \"price_per_unit\": \"149.00\", \"total_price\": \"447.00\" }\n  ],\n  \"status_history\": [\n    { \"status\": \"new\", \"changed_at\": \"2026-04-12T10:00:00Z\" },\n    { \"status\": \"confirmed\", \"changed_at\": \"2026-04-12T10:05:00Z\" }\n  ],\n  \"created_at\": \"2026-04-12T10:00:00Z\"\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{ \"error\": \"Order not found\" }"
+            }
+          ]
+        },
+        {
+          "name": "List orders (admin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/orders",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "orders"],
+              "query": [
+                { "key": "status", "value": "new", "disabled": true },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true }
+              ]
+            },
+            "description": "Returns paginated list of orders. Requires admin JWT.",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": [\n    { \"id\": 100, \"status\": \"new\", \"total_amount\": \"447.00\", \"shipping_name\": \"Иван Иванов\", \"created_at\": \"2026-04-12T10:00:00Z\" }\n  ],\n  \"pagination\": { \"page\": 1, \"limit\": 20, \"total\": 1, \"pages\": 1 }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update order status (admin)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/v1/orders/:id/status",
+            "description": "Changes order status. Requires admin JWT.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"note\": \"Payment verified\"\n}"
+            },
+            "variable": [{ "key": "id", "value": "100" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"id\": 100, \"status\": \"confirmed\" }"
+            },
+            {
+              "name": "400 Bad Request — invalid transition",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{ \"error\": \"Invalid status transition: delivered → new\" }"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

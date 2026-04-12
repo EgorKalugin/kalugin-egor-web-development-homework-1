@@ -1,0 +1,256 @@
+{
+  "info": {
+    "name": "Admin Panel Service API",
+    "_postman_id": "admin-service-v1",
+    "description": "API for admin authentication and back-office management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3003", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/admin/auth/login",
+            "description": "Authenticates an admin user and returns a JWT token",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"secret\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"expires_at\": \"2026-04-13T10:00:00Z\",\n  \"admin\": { \"id\": 1, \"username\": \"admin\", \"role\": \"super_admin\" }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{ \"error\": \"Invalid credentials\" }"
+            },
+            {
+              "name": "403 Forbidden — account disabled",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{ \"error\": \"Account is disabled\" }"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/admin/auth/logout",
+            "description": "Invalidates the current session token",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ]
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "status": "No Content",
+              "code": 204,
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "Get current admin",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/auth/me",
+            "description": "Returns info about the currently authenticated admin",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"id\": 1, \"username\": \"admin\", \"email\": \"admin@bulbs.ru\", \"role\": \"super_admin\", \"last_login_at\": \"2026-04-12T09:00:00Z\" }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Admin Users (super_admin only)",
+      "item": [
+        {
+          "name": "List admin users",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/admin/users",
+            "description": "Returns all admin accounts. Requires super_admin role.",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "[\n  { \"id\": 1, \"username\": \"admin\", \"email\": \"admin@bulbs.ru\", \"role\": \"super_admin\", \"is_active\": true },\n  { \"id\": 2, \"username\": \"manager1\", \"email\": \"manager1@bulbs.ru\", \"role\": \"manager\", \"is_active\": true }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Create admin user",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/admin/users",
+            "description": "Creates a new admin user. Requires super_admin role.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"warehouse1\",\n  \"email\": \"warehouse1@bulbs.ru\",\n  \"password\": \"StrongPassword123!\",\n  \"role\": \"warehouse\"\n}"
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{ \"id\": 3, \"username\": \"warehouse1\", \"role\": \"warehouse\" }"
+            }
+          ]
+        },
+        {
+          "name": "Update admin user",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/v1/admin/users/:id",
+            "description": "Updates admin user role or active status. Requires super_admin role.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"is_active\": false }"
+            },
+            "variable": [{ "key": "id", "value": "3" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"id\": 3, \"is_active\": false }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Products (admin)",
+      "item": [
+        {
+          "name": "List all products (incl. inactive)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "products"],
+              "query": [
+                { "key": "is_active", "value": "false", "disabled": true },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "20", "disabled": true }
+              ]
+            },
+            "description": "Returns all products including inactive ones. Requires manager or super_admin.",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"data\": [ { \"id\": 1, \"sku\": \"LED-E27-10W-4000K\", \"name\": \"LED Bulb E27 10W\", \"price\": \"149.00\", \"stock_quantity\": 500, \"is_active\": true } ], \"pagination\": { \"page\": 1, \"limit\": 20, \"total\": 20 } }"
+            }
+          ]
+        },
+        {
+          "name": "Update stock quantity",
+          "request": {
+            "method": "PATCH",
+            "url": "{{base_url}}/api/v1/admin/products/:id/stock",
+            "description": "Updates stock quantity for a product. Requires warehouse, manager, or super_admin.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"stock_quantity\": 750 }"
+            },
+            "variable": [{ "key": "id", "value": "1" }]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{ \"id\": 1, \"stock_quantity\": 750 }"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Audit Log",
+      "item": [
+        {
+          "name": "Get audit log",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/audit-log",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "audit-log"],
+              "query": [
+                { "key": "entity_type", "value": "product", "disabled": true },
+                { "key": "admin_id", "value": "1", "disabled": true },
+                { "key": "page", "value": "1", "disabled": true },
+                { "key": "limit", "value": "50", "disabled": true }
+              ]
+            },
+            "description": "Returns paginated audit log entries. Requires super_admin.",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+            ]
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"data\": [\n    {\n      \"id\": 1,\n      \"admin\": { \"id\": 1, \"username\": \"admin\" },\n      \"action\": \"UPDATE_PRODUCT\",\n      \"entity_type\": \"product\",\n      \"entity_id\": 5,\n      \"old_value\": { \"price\": \"149.00\" },\n      \"new_value\": { \"price\": \"129.00\" },\n      \"created_at\": \"2026-04-12T11:00:00Z\"\n    }\n  ],\n  \"pagination\": { \"page\": 1, \"limit\": 50, \"total\": 1 }\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
