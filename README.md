@@ -116,14 +116,14 @@ new → confirmed → processing → shipped → delivered
 
 ```
 web-development-hw-1/
-├── README.md              # Данный файл
-├── task.md                # Постановка задания
-├── db/
-│   ├── catalog_db.md      # Схема БД: каталог
-│   ├── orders_db.md       # Схема БД: заказы
-│   └── admin_db.md        # Схема БД: панель управления
-└── api/
-    ├── catalog_api.json   # Postman: catalog service
-    ├── orders_api.json    # Postman: order service
-    └── admin_api.json     # Postman: admin service
+├── README.md
+└── docs/
+    ├── db/
+    │   ├── catalog_db.md      # Схема БД: каталог
+    │   ├── orders_db.md       # Схема БД: заказы
+    │   └── admin_db.md        # Схема БД: панель управления
+    └── api/
+        ├── catalog_api.json   # Postman: catalog service
+        ├── orders_api.json    # Postman: order service
+        └── admin_api.json     # Postman: admin service
 ```
