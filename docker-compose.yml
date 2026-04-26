@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  catalog_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: catalog_db
+      POSTGRES_USER: catalog_user
+      POSTGRES_PASSWORD: catalog_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - catalog_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog_user -d catalog_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  orders_db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: orders_user
+      POSTGRES_PASSWORD: orders_pass
+    ports:
+      - "5433:5432"
+    volumes:
+      - orders_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orders_user -d orders_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  catalog_service:
+    build: ./catalog_service
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://catalog_user:catalog_pass@catalog_db:5432/catalog_db
+    depends_on:
+      catalog_db:
+        condition: service_healthy
+
+  order_service:
+    build: ./order_service
+    ports:
+      - "3002:3002"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://orders_user:orders_pass@orders_db:5432/orders_db
+      CATALOG_SERVICE_URL: http://catalog_service:3001
+    depends_on:
+      orders_db:
+        condition: service_healthy
+      catalog_service:
+        condition: service_started
+
+volumes:
+  catalog_db_data:
+  orders_db_data:

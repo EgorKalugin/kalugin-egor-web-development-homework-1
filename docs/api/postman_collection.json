@@ -1,0 +1,1282 @@
+{
+  "info": {
+    "name": "Online Store – Full API Tests",
+    "_postman_id": "online-store-full-v1",
+    "description": "End-to-end collection for Catalog Service (port 3001) and Order Service (port 3002).\n\nRun the requests in order — test scripts automatically capture IDs and the session token into collection variables.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "catalog_url", "value": "http://localhost:3001", "type": "string" },
+    { "key": "orders_url",  "value": "http://localhost:3002", "type": "string" },
+    { "key": "session_id",  "value": "test-session-001",      "type": "string" },
+    { "key": "category_id", "value": "",                      "type": "string" },
+    { "key": "product_id",  "value": "",                      "type": "string" },
+    { "key": "product_id_2","value": "",                      "type": "string" },
+    { "key": "category_id_2","value": "",                     "type": "string" },
+    { "key": "cart_item_id","value": "",                      "type": "string" },
+    { "key": "order_id",    "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Catalog – health",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('catalog service is up', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders – health",
+          "request": {
+            "method": "GET",
+            "url": "{{orders_url}}/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('order service is up', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().status).to.eql('ok');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Catalog – Categories",
+      "item": [
+        {
+          "name": "Create category",
+          "request": {
+            "method": "POST",
+            "url": "{{catalog_url}}/api/v1/categories",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"LED\",\n  \"description\": \"Energy-efficient LED bulbs\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const codes = [200, 201];",
+                  "pm.test('category created or already exists', () => {",
+                  "  pm.expect(codes).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.id) pm.collectionVariables.set('category_id', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create second category",
+          "request": {
+            "method": "POST",
+            "url": "{{catalog_url}}/api/v1/categories",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Halogen\",\n  \"description\": \"Halogen bulbs\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('category_id_2', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List categories",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/api/v1/categories"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('returns array', () => {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});",
+                  "const cats = pm.response.json();",
+                  "if (cats.length > 0) pm.collectionVariables.set('category_id', cats[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get category by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/api/v1/categories/{{category_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('has id and name', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b).to.have.property('id');",
+                  "  pm.expect(b).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get category – 404",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/api/v1/categories/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('error message present', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update category",
+          "request": {
+            "method": "PATCH",
+            "url": "{{catalog_url}}/api/v1/categories/{{category_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"description\": \"Updated LED category description\" }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('description updated', () => {",
+                  "  pm.expect(pm.response.json().description).to.eql('Updated LED category description');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update category – 404",
+          "request": {
+            "method": "PATCH",
+            "url": "{{catalog_url}}/api/v1/categories/99999",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"description\": \"ghost\" }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete category (second)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{catalog_url}}/api/v1/categories/{{category_id_2}}"
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// category_id_2 is captured when creating the second category"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 204 if category_id_2 was set, otherwise skip",
+                  "const id2 = pm.collectionVariables.get('category_id_2');",
+                  "if (id2) {",
+                  "  pm.test('status 204', () => pm.response.to.have.status(204));",
+                  "} else {",
+                  "  console.log('category_id_2 not set — skipping');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete category – 404",
+          "request": {
+            "method": "DELETE",
+            "url": "{{catalog_url}}/api/v1/categories/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Catalog – Products",
+      "item": [
+        {
+          "name": "Create product",
+          "request": {
+            "method": "POST",
+            "url": "{{catalog_url}}/api/v1/products",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"LED-E27-10W-4000K\",\n  \"name\": \"LED Bulb E27 10W 4000K\",\n  \"description\": \"Energy-saving LED bulb, neutral white\",\n  \"category_id\": {{category_id}},\n  \"price\": 149.00,\n  \"stock_quantity\": 500,\n  \"image_url\": \"/images/led-e27-10w.jpg\",\n  \"wattage\": 10.0,\n  \"voltage\": 220,\n  \"base_type\": \"E27\",\n  \"color_temp\": 4000,\n  \"lifespan_hours\": 25000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('has id', () => pm.expect(b).to.have.property('id'));",
+                  "pm.collectionVariables.set('product_id', b.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create product – duplicate SKU (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{catalog_url}}/api/v1/products",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"LED-E27-10W-4000K\",\n  \"name\": \"Duplicate SKU test\",\n  \"category_id\": {{category_id}},\n  \"price\": 99.00,\n  \"stock_quantity\": 10\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400 for duplicate SKU', () => pm.response.to.have.status(400));",
+                  "pm.test('error field present', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create second product",
+          "request": {
+            "method": "POST",
+            "url": "{{catalog_url}}/api/v1/products",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sku\": \"LED-E14-7W-3000K\",\n  \"name\": \"LED Bulb E14 7W 3000K\",\n  \"description\": \"Warm white LED candle bulb\",\n  \"category_id\": {{category_id}},\n  \"price\": 119.00,\n  \"stock_quantity\": 300,\n  \"wattage\": 7.0,\n  \"voltage\": 220,\n  \"base_type\": \"E14\",\n  \"color_temp\": 3000,\n  \"lifespan_hours\": 20000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('product_id_2', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{catalog_url}}/api/v1/products?page=1&limit=20",
+              "host": ["{{catalog_url}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('has data array', () => pm.expect(b.data).to.be.an('array'));",
+                  "pm.test('has pagination', () => {",
+                  "  pm.expect(b.pagination).to.have.property('page');",
+                  "  pm.expect(b.pagination).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List products – filter by category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{catalog_url}}/api/v1/products?category_id={{category_id}}",
+              "host": ["{{catalog_url}}"],
+              "path": ["api", "v1", "products"],
+              "query": [{ "key": "category_id", "value": "{{category_id}}" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('all items belong to category', () => {",
+                  "  const catId = parseInt(pm.collectionVariables.get('category_id'));",
+                  "  pm.response.json().data.forEach(p => {",
+                  "    pm.expect(p.category_id).to.eql(catId);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List products – search",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{catalog_url}}/api/v1/products?search=LED",
+              "host": ["{{catalog_url}}"],
+              "path": ["api", "v1", "products"],
+              "query": [{ "key": "search", "value": "LED" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('results contain search term', () => {",
+                  "  pm.response.json().data.forEach(p => {",
+                  "    const match = p.name.toLowerCase().includes('led') ||",
+                  "                  (p.description || '').toLowerCase().includes('led') ||",
+                  "                  p.sku.toLowerCase().includes('led');",
+                  "    pm.expect(match).to.be.true;",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List products – sort price_asc",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{catalog_url}}/api/v1/products?sort=price_asc",
+              "host": ["{{catalog_url}}"],
+              "path": ["api", "v1", "products"],
+              "query": [{ "key": "sort", "value": "price_asc" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('prices are ascending', () => {",
+                  "  const prices = pm.response.json().data.map(p => parseFloat(p.price));",
+                  "  for (let i = 1; i < prices.length; i++) {",
+                  "    pm.expect(prices[i]).to.be.at.least(prices[i-1]);",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get product by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/api/v1/products/{{product_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('full detail fields', () => {",
+                  "  ['id','sku','name','price','stock_quantity','category','images'].forEach(f => {",
+                  "    pm.expect(b).to.have.property(f);",
+                  "  });",
+                  "});",
+                  "pm.test('category is embedded object', () => {",
+                  "  pm.expect(b.category).to.have.property('id');",
+                  "  pm.expect(b.category).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get product – 404",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/api/v1/products/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('error field present', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update product (price + stock)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{catalog_url}}/api/v1/products/{{product_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 129.00,\n  \"stock_quantity\": 450\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('price updated', () => pm.expect(parseFloat(b.price)).to.eql(129));",
+                  "pm.test('stock updated', () => pm.expect(b.stock_quantity).to.eql(450));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Soft-delete product (second)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{catalog_url}}/api/v1/products/{{product_id_2}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted product not in list",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/api/v1/products"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('deleted product absent', () => {",
+                  "  const deletedId = parseInt(pm.collectionVariables.get('product_id_2'));",
+                  "  const found = pm.response.json().data.some(p => p.id === deletedId);",
+                  "  pm.expect(found).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Deleted product 404 by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{catalog_url}}/api/v1/products/{{product_id_2}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404 after soft-delete', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders – Cart",
+      "item": [
+        {
+          "name": "Get empty cart",
+          "request": {
+            "method": "GET",
+            "url": "{{orders_url}}/api/v1/cart",
+            "header": [{ "key": "X-Session-ID", "value": "{{session_id}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('items array present', () => pm.expect(b.items).to.be.an('array'));",
+                  "pm.test('total is 0 or falsy', () => {",
+                  "  pm.expect(parseFloat(b.total)).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add item to cart",
+          "request": {
+            "method": "POST",
+            "url": "{{orders_url}}/api/v1/cart/items",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('cart_item_id returned', () => pm.expect(b).to.have.property('cart_item_id'));",
+                  "pm.collectionVariables.set('cart_item_id', b.cart_item_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add same item again (accumulates)",
+          "request": {
+            "method": "POST",
+            "url": "{{orders_url}}/api/v1/cart/items",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('quantity is now 4', () => {",
+                  "  pm.expect(pm.response.json().quantity).to.eql(4);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add non-existent product (404)",
+          "request": {
+            "method": "POST",
+            "url": "{{orders_url}}/api/v1/cart/items",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 99999,\n  \"quantity\": 1\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404 for missing product', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add item – exceed stock (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{orders_url}}/api/v1/cart/items",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 100000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400 for insufficient stock', () => pm.response.to.have.status(400));",
+                  "pm.test('error and available fields', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b).to.have.property('error');",
+                  "  pm.expect(b).to.have.property('available');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get cart with items",
+          "request": {
+            "method": "GET",
+            "url": "{{orders_url}}/api/v1/cart",
+            "header": [{ "key": "X-Session-ID", "value": "{{session_id}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('cart has items', () => pm.expect(b.items.length).to.be.above(0));",
+                  "pm.test('total > 0', () => pm.expect(parseFloat(b.total)).to.be.above(0));",
+                  "pm.test('item has product_name and price', () => {",
+                  "  const item = b.items[0];",
+                  "  pm.expect(item).to.have.property('product_name');",
+                  "  pm.expect(item).to.have.property('price');",
+                  "  pm.expect(item).to.have.property('subtotal');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update cart item quantity",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/cart/items/{{cart_item_id}}",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"quantity\": 2 }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('quantity set to 2', () => {",
+                  "  pm.expect(pm.response.json().quantity).to.eql(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update cart item – zero quantity (400)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/cart/items/{{cart_item_id}}",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"quantity\": 0 }"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400 for quantity=0', () => pm.response.to.have.status(400));",
+                  "pm.test('error field present', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove item from cart",
+          "request": {
+            "method": "DELETE",
+            "url": "{{orders_url}}/api/v1/cart/items/{{cart_item_id}}",
+            "header": [{ "key": "X-Session-ID", "value": "{{session_id}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove item – wrong session (404)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{orders_url}}/api/v1/cart/items/{{cart_item_id}}",
+            "header": [{ "key": "X-Session-ID", "value": "other-session-xyz" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404 – item belongs to different session', () => {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Re-add item for checkout",
+          "request": {
+            "method": "POST",
+            "url": "{{orders_url}}/api/v1/cart/items",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 3\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('cart_item_id', pm.response.json().cart_item_id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders – Checkout & Management",
+      "item": [
+        {
+          "name": "Checkout – empty cart (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{orders_url}}/api/v1/orders",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "empty-session-xyz" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipping_name\": \"Test User\",\n  \"shipping_phone\": \"+7 900 000-00-00\",\n  \"shipping_email\": \"test@example.com\",\n  \"shipping_address\": \"Test address\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400 for empty cart', () => pm.response.to.have.status(400));",
+                  "pm.test('error field present', () => {",
+                  "  pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Checkout – create order",
+          "request": {
+            "method": "POST",
+            "url": "{{orders_url}}/api/v1/orders",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "X-Session-ID",  "value": "{{session_id}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipping_name\": \"Иван Иванов\",\n  \"shipping_phone\": \"+7 900 123-45-67\",\n  \"shipping_email\": \"ivan@example.com\",\n  \"shipping_address\": \"г. Москва, ул. Ленина, д. 1, кв. 5\",\n  \"comment\": \"Позвоните за час до доставки\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.test('order has required fields', () => {",
+                  "  ['id','status','total_amount','items','status_history','created_at'].forEach(f => {",
+                  "    pm.expect(b).to.have.property(f);",
+                  "  });",
+                  "});",
+                  "pm.test('status is new', () => pm.expect(b.status).to.eql('new'));",
+                  "pm.test('items not empty', () => pm.expect(b.items.length).to.be.above(0));",
+                  "pm.test('history has new entry', () => {",
+                  "  pm.expect(b.status_history.length).to.be.above(0);",
+                  "  pm.expect(b.status_history[0].status).to.eql('new');",
+                  "});",
+                  "pm.collectionVariables.set('order_id', b.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cart is empty after checkout",
+          "request": {
+            "method": "GET",
+            "url": "{{orders_url}}/api/v1/cart",
+            "header": [{ "key": "X-Session-ID", "value": "{{session_id}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('cart is empty after checkout', () => {",
+                  "  pm.expect(pm.response.json().items.length).to.eql(0);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get order by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{orders_url}}/api/v1/orders/{{order_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('correct order id', () => {",
+                  "  pm.expect(b.id).to.eql(parseInt(pm.collectionVariables.get('order_id')));",
+                  "});",
+                  "pm.test('items have price snapshots', () => {",
+                  "  b.items.forEach(i => {",
+                  "    pm.expect(i).to.have.property('product_name');",
+                  "    pm.expect(i).to.have.property('product_sku');",
+                  "    pm.expect(i).to.have.property('price_per_unit');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get order – 404",
+          "request": {
+            "method": "GET",
+            "url": "{{orders_url}}/api/v1/orders/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('error field', () => pm.expect(pm.response.json()).to.have.property('error'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List orders",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{orders_url}}/api/v1/orders?page=1&limit=20",
+              "host": ["{{orders_url}}"],
+              "path": ["api", "v1", "orders"],
+              "query": [
+                { "key": "page",  "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('has data and pagination', () => {",
+                  "  pm.expect(b.data).to.be.an('array');",
+                  "  pm.expect(b.pagination).to.have.property('total');",
+                  "});",
+                  "pm.test('at least one order', () => pm.expect(b.data.length).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List orders – filter by status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{orders_url}}/api/v1/orders?status=new",
+              "host": ["{{orders_url}}"],
+              "path": ["api", "v1", "orders"],
+              "query": [{ "key": "status", "value": "new" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('all orders have status new', () => {",
+                  "  pm.response.json().data.forEach(o => {",
+                  "    pm.expect(o.status).to.eql('new');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List orders – invalid status (400)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{orders_url}}/api/v1/orders?status=flying",
+              "host": ["{{orders_url}}"],
+              "path": ["api", "v1", "orders"],
+              "query": [{ "key": "status", "value": "flying" }]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400 for unknown status value', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update order status – new → confirmed",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/orders/{{order_id}}/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"confirmed\",\n  \"note\": \"Payment verified\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is confirmed', () => pm.expect(b.status).to.eql('confirmed'));",
+                  "pm.test('history has 2 entries (new + confirmed)', () => {",
+                  "  pm.expect(b.status_history).to.have.lengthOf(2);",
+                  "  pm.expect(b.status_history.map(h => h.status)).to.eql(['new', 'confirmed']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update order status – confirmed → processing",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/orders/{{order_id}}/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"processing\",\n  \"note\": \"Order is being assembled\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is processing', () => pm.expect(b.status).to.eql('processing'));",
+                  "pm.test('history has 3 entries', () => pm.expect(b.status_history).to.have.lengthOf(3));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid status transition (400)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/orders/{{order_id}}/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"new\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400 for invalid transition', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update order status – processing → shipped",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/orders/{{order_id}}/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"shipped\",\n  \"note\": \"Handed to courier\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is shipped', () => pm.expect(b.status).to.eql('shipped'));",
+                  "pm.test('history has 4 entries', () => pm.expect(b.status_history).to.have.lengthOf(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update order status – shipped → delivered",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/orders/{{order_id}}/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"delivered\",\n  \"note\": \"Customer confirmed receipt\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('status is delivered', () => pm.expect(b.status).to.eql('delivered'));",
+                  "pm.test('history has 5 entries', () => pm.expect(b.status_history).to.have.lengthOf(5));",
+                  "pm.test('full chain new→confirmed→processing→shipped→delivered', () => {",
+                  "  const statuses = b.status_history.map(h => h.status);",
+                  "  pm.expect(statuses).to.eql(['new','confirmed','processing','shipped','delivered']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel already-delivered order (400)",
+          "request": {
+            "method": "PATCH",
+            "url": "{{orders_url}}/api/v1/orders/{{order_id}}/status",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"cancelled\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 400 – cannot cancel delivered order', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clear cart – explicit",
+          "request": {
+            "method": "DELETE",
+            "url": "{{orders_url}}/api/v1/cart",
+            "header": [{ "key": "X-Session-ID", "value": "{{session_id}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+.DS-Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+dist/
+.coverage
+coverage.xml
+.pytest_cache/
+.pyright/
+.ruff_cache/
+
