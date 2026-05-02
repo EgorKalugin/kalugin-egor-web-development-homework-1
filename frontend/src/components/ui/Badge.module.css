@@ -1,0 +1,12 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.hit  { background: var(--badge-hit-bg);  color: var(--badge-hit-fg); }
+.new  { background: var(--badge-new-bg);  color: var(--badge-new-fg); }
+.sale { background: var(--badge-sale-bg); color: var(--badge-sale-fg); }

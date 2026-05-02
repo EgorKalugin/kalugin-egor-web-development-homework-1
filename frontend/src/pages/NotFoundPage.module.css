@@ -1,0 +1,17 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-10) 0;
+}
+.code {
+  font-size: 96px;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+}
+.title { font-size: 24px; font-weight: 700; }
+.text { color: var(--color-text-muted); max-width: 480px; }
+.actions { display: flex; gap: var(--space-3); margin-top: var(--space-4); flex-wrap: wrap; }

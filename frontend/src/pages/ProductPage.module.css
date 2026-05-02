@@ -1,0 +1,90 @@
+.wrap { display: flex; flex-direction: column; gap: var(--space-5); }
+.breadcrumbs { font-size: 13px; color: var(--color-text-muted); }
+.breadcrumbs a:hover { color: var(--color-text); }
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-8);
+}
+@media (max-width: 900px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+.gallery, .image, .info { min-width: 0; }
+.image {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(180deg, #fff7ed 0%, #fef3c7 100%);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+}
+.imageEmoji { font-size: 120px; }
+.badge { position: absolute; top: 16px; left: 16px; }
+
+.info { display: flex; flex-direction: column; gap: var(--space-4); }
+.name { font-size: 28px; font-weight: 700; line-height: 1.2; }
+.sku { font-size: 13px; color: var(--color-text-muted); }
+.description { color: var(--color-text); line-height: 1.55; }
+
+.specs {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 8px var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-size: 14px;
+}
+.specs dt { color: var(--color-text-muted); }
+.specs dd { font-weight: 500; }
+
+.purchase {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  flex-wrap: wrap;
+}
+.price { font-size: 28px; font-weight: 700; }
+
+.qty {
+  display: inline-flex;
+  align-items: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  height: 40px;
+}
+.qty button {
+  width: 36px;
+  height: 100%;
+  font-size: 18px;
+  color: var(--color-text);
+}
+.qty button:disabled { color: var(--color-text-muted); cursor: not-allowed; }
+.qty span {
+  min-width: 40px;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.notFound {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-10) 0;
+}
+.backLink {
+  color: var(--color-primary);
+  font-weight: 500;
+  margin-top: var(--space-4);
+}

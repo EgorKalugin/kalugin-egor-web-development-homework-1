@@ -13,3 +13,10 @@ coverage.xml
 .pyright/
 .ruff_cache/
 
+# Node / frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/*.local
+.vite/
+

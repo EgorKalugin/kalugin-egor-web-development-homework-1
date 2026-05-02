@@ -1,0 +1,93 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: 72px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+.inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+.logo { display: inline-flex; align-items: center; gap: var(--space-2); }
+.logoIcon { font-size: 24px; }
+.logoText { font-weight: 700; font-size: 18px; letter-spacing: 0.01em; }
+
+.nav { display: flex; gap: var(--space-2); margin-left: var(--space-4); }
+.navLink {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.navLink:hover { color: var(--color-text); }
+.navLinkActive { color: var(--color-text); background: var(--color-primary-soft); }
+
+.search {
+  flex: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  pointer-events: none;
+  font-size: 14px;
+  opacity: 0.7;
+}
+.searchInput {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px 0 40px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.searchInput:focus {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+}
+
+.cartButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 44px;
+  padding: 0 16px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+.cartButton:hover { background: #d8e4ff; }
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .nav { display: none; }
+  .search { max-width: none; }
+  .logoText { display: none; }
+}
