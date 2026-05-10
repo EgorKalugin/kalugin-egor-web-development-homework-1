@@ -1,11 +1,10 @@
-import type { BaseType, CategorySlug } from '@/types/product'
-import { categories } from '@/data/categories'
+import type { Category } from '@/types/product'
 import { Button } from '@/components/ui/Button'
 import styles from './ProductFilters.module.css'
 
 export interface FilterState {
-  categories: CategorySlug[]
-  baseTypes: BaseType[]
+  categoryIds: number[]
+  baseTypes: string[]
   wattageBuckets: WattageBucket[]
   priceMin: number
   priceMax: number
@@ -20,7 +19,7 @@ export const WATTAGE_OPTIONS: { value: WattageBucket; label: string }[] = [
   { value: 'gt40', label: '40+ Вт' },
 ]
 
-const BASE_TYPES: BaseType[] = ['E14', 'E27', 'GU10', 'GU5.3']
+const BASE_TYPES = ['E14', 'E27', 'GU10', 'GU5.3']
 
 export function wattageMatches(w: number, bucket: WattageBucket): boolean {
   switch (bucket) {
@@ -38,11 +37,12 @@ export function wattageMatches(w: number, bucket: WattageBucket): boolean {
 interface Props {
   state: FilterState
   bounds: { min: number; max: number }
+  categories: Category[]
   onChange: (next: FilterState) => void
   onReset: () => void
 }
 
-export function ProductFilters({ state, bounds, onChange, onReset }: Props) {
+export function ProductFilters({ state, bounds, categories, onChange, onReset }: Props) {
   const toggle = <T,>(arr: T[], value: T): T[] =>
     arr.includes(value) ? arr.filter((x) => x !== value) : [...arr, value]
 
@@ -58,13 +58,13 @@ export function ProductFilters({ state, bounds, onChange, onReset }: Props) {
       <FilterGroup title="Тип лампы">
         {categories.map((c) => (
           <Checkbox
-            key={c.slug}
+            key={c.id}
             label={c.name}
-            checked={state.categories.includes(c.slug)}
+            checked={state.categoryIds.includes(c.id)}
             onChange={() =>
               onChange({
                 ...state,
-                categories: toggle(state.categories, c.slug),
+                categoryIds: toggle(state.categoryIds, c.id),
               })
             }
           />

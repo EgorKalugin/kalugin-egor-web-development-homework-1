@@ -1,10 +1,12 @@
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { useCart } from '@/context/CartContext'
+import { useAppSelector } from '@/store'
 import styles from './Header.module.css'
 
 export function Header() {
-  const { itemCount } = useCart()
+  const itemCount = useAppSelector((s) =>
+    s.cart.items.reduce((sum, i) => sum + i.quantity, 0),
+  )
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') ?? '')

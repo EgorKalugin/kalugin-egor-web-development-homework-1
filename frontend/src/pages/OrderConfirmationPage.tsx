@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useOrders } from '@/context/OrdersContext'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { loadOrder } from '@/store/ordersSlice'
 import { ORDER_STATUS_LABELS } from '@/types/order'
 import { Button } from '@/components/ui/Button'
 import { formatDateTime, formatPrice } from '@/utils/format'
@@ -7,15 +9,29 @@ import styles from './OrderConfirmationPage.module.css'
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams<{ orderId: string }>()
-  const { getOrder } = useOrders()
   const id = Number(orderId)
-  const order = Number.isFinite(id) ? getOrder(id) : undefined
+  const dispatch = useAppDispatch()
+  const order = useAppSelector((s) =>
+    Number.isFinite(id) ? s.orders.byId[id] : undefined,
+  )
+  const status = useAppSelector((s) => s.orders.detailStatus)
+  const error = useAppSelector((s) => s.orders.detailError)
+
+  useEffect(() => {
+    if (Number.isFinite(id) && !order) {
+      dispatch(loadOrder(id))
+    }
+  }, [dispatch, id, order])
+
+  if (status === 'loading' && !order) {
+    return <div className={`container ${styles.missing}`}>Загружаем заказ…</div>
+  }
 
   if (!order) {
     return (
       <div className={`container ${styles.missing}`}>
         <h1>Заказ не найден</h1>
-        <p>Возможно, страница была перезагружена. Заказы хранятся в памяти текущей сессии.</p>
+        <p>{error ?? 'Возможно, заказ был оформлен в другой сессии.'}</p>
         <Link to="/catalog">
           <Button>Перейти в каталог</Button>
         </Link>
@@ -56,8 +72,8 @@ export default function OrderConfirmationPage() {
 
         <h2 className={styles.subtitle}>Состав заказа</h2>
         <ul className={styles.items}>
-          {order.items.map((item) => (
-            <li key={item.productId} className={styles.item}>
+          {order.items.map((item, idx) => (
+            <li key={idx} className={styles.item}>
               <span>
                 {item.productName}{' '}
                 <span className={styles.muted}>× {item.quantity}</span>

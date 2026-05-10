@@ -29,3 +29,12 @@
 }
 .item:last-child { border-bottom: 0; padding-bottom: 0; }
 .itemQty { color: var(--color-text-muted); }
+.itemName { color: var(--color-text); }
+
+.error {
+  color: #b91c1c;
+  font-size: 14px;
+  background: #fee2e2;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+}

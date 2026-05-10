@@ -1,18 +1,18 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Provider } from 'react-redux'
 import { RouterProvider } from 'react-router-dom'
 import { router } from './router'
-import { CartProvider } from './context/CartContext'
-import { OrdersProvider } from './context/OrdersContext'
+import { store } from './store'
+import { CartBootstrap } from './components/CartBootstrap'
 import './styles/reset.css'
 import './styles/theme.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <OrdersProvider>
-      <CartProvider>
-        <RouterProvider router={router} />
-      </CartProvider>
-    </OrdersProvider>
+    <Provider store={store}>
+      <CartBootstrap />
+      <RouterProvider router={router} />
+    </Provider>
   </StrictMode>,
 )

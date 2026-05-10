@@ -57,3 +57,6 @@
 }
 .sectionTitle { font-size: 22px; font-weight: 700; }
 .sectionLink { color: var(--color-primary); font-weight: 500; }
+
+.statusNote { color: var(--color-text-muted); padding: var(--space-4); }
+.statusError { color: #b91c1c; padding: var(--space-4); }

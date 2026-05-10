@@ -7,12 +7,21 @@ export type OrderStatus =
   | 'cancelled'
 
 export interface CartItem {
+  id: number
   productId: number
+  productName: string
+  price: number
   quantity: number
+  subtotal: number
+}
+
+export interface Cart {
+  id: number | null
+  items: CartItem[]
+  total: number
 }
 
 export interface OrderItem {
-  productId: number
   productName: string
   productSku: string
   quantity: number
@@ -40,6 +49,7 @@ export interface Order {
   totalAmount: number
   items: OrderItem[]
   shipping: ShippingInfo
+  comment?: string
   createdAt: string
   statusHistory: OrderStatusEvent[]
 }

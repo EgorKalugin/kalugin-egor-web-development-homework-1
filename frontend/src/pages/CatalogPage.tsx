@@ -1,98 +1,112 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { products } from '@/data/products'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { loadProducts } from '@/store/productsSlice'
 import { ProductGrid } from '@/components/product/ProductGrid/ProductGrid'
 import {
   ProductFilters,
   wattageMatches,
   type FilterState,
 } from '@/components/product/ProductFilters/ProductFilters'
+import type { Sort } from '@/types/product'
 import styles from './CatalogPage.module.css'
 
-const PRICES = products.map((p) => p.price)
-const PRICE_BOUNDS = {
-  min: Math.min(...PRICES),
-  max: Math.max(...PRICES),
+const SORT_LABELS: Record<Sort, string> = {
+  name_asc: 'по названию',
+  price_asc: 'цена: по возрастанию',
+  price_desc: 'цена: по убыванию',
 }
 
-const DEFAULT_FILTERS: FilterState = {
-  categories: [],
+const emptyFilters = (min: number, max: number): FilterState => ({
+  categoryIds: [],
   baseTypes: [],
   wattageBuckets: [],
-  priceMin: PRICE_BOUNDS.min,
-  priceMax: PRICE_BOUNDS.max,
-}
-
-type SortKey = 'popular' | 'price-asc' | 'price-desc' | 'new'
-
-const SORT_LABELS: Record<SortKey, string> = {
-  popular: 'популярные',
-  'price-asc': 'цена: по возрастанию',
-  'price-desc': 'цена: по убыванию',
-  new: 'новинки',
-}
+  priceMin: min,
+  priceMax: max,
+})
 
 export default function CatalogPage() {
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS)
-  const [sort, setSort] = useState<SortKey>('popular')
+  const dispatch = useAppDispatch()
+  const items = useAppSelector((s) => s.products.items)
+  const status = useAppSelector((s) => s.products.itemsStatus)
+  const error = useAppSelector((s) => s.products.itemsError)
+  const categories = useAppSelector((s) => s.products.categories)
+
   const [searchParams] = useSearchParams()
-  const query = (searchParams.get('q') ?? '').trim().toLowerCase()
+  const query = (searchParams.get('q') ?? '').trim()
+
+  const [sort, setSort] = useState<Sort>('name_asc')
+
+  useEffect(() => {
+    dispatch(
+      loadProducts({
+        limit: 100,
+        search: query || undefined,
+        sort,
+      }),
+    )
+  }, [dispatch, query, sort])
+
+  const priceBounds = useMemo(() => {
+    if (items.length === 0) return { min: 0, max: 1000 }
+    const prices = items.map((p) => p.price)
+    return { min: Math.min(...prices), max: Math.max(...prices) }
+  }, [items])
+
+  const [filters, setFilters] = useState<FilterState>(() => emptyFilters(0, 1000))
+
+  // Reset bounds when items change and current bounds are out of range.
+  useEffect(() => {
+    setFilters((prev) => {
+      const min = prev.priceMin <= priceBounds.min ? priceBounds.min : prev.priceMin
+      const max = prev.priceMax >= priceBounds.max ? priceBounds.max : prev.priceMax
+      if (min !== prev.priceMin || max !== prev.priceMax) {
+        return { ...prev, priceMin: min, priceMax: max }
+      }
+      return prev
+    })
+  }, [priceBounds.min, priceBounds.max])
 
   const visible = useMemo(() => {
-    const filtered = products.filter((p) => {
-      if (filters.categories.length && !filters.categories.includes(p.categorySlug)) {
+    return items.filter((p) => {
+      if (filters.categoryIds.length && !filters.categoryIds.includes(p.categoryId)) {
         return false
       }
-      if (filters.baseTypes.length && !filters.baseTypes.includes(p.baseType)) {
+      if (filters.baseTypes.length && (!p.baseType || !filters.baseTypes.includes(p.baseType))) {
         return false
       }
       if (
         filters.wattageBuckets.length &&
-        !filters.wattageBuckets.some((b) => wattageMatches(p.wattage, b))
+        (p.wattage === undefined ||
+          !filters.wattageBuckets.some((b) => wattageMatches(p.wattage!, b)))
       ) {
         return false
       }
       if (p.price < filters.priceMin || p.price > filters.priceMax) {
         return false
       }
-      if (query && !p.name.toLowerCase().includes(query) && !p.sku.toLowerCase().includes(query)) {
-        return false
-      }
       return true
     })
-
-    const sorted = [...filtered]
-    switch (sort) {
-      case 'price-asc':
-        sorted.sort((a, b) => a.price - b.price)
-        break
-      case 'price-desc':
-        sorted.sort((a, b) => b.price - a.price)
-        break
-      case 'new':
-        sorted.sort((a, b) => Number(b.badge === 'new') - Number(a.badge === 'new'))
-        break
-      case 'popular':
-      default:
-        sorted.sort((a, b) => Number(b.badge === 'hit') - Number(a.badge === 'hit'))
-    }
-    return sorted
-  }, [filters, sort, query])
+  }, [items, filters])
 
   return (
     <div className={`container ${styles.layout}`}>
       <ProductFilters
         state={filters}
-        bounds={PRICE_BOUNDS}
+        bounds={priceBounds}
+        categories={categories}
         onChange={setFilters}
-        onReset={() => setFilters(DEFAULT_FILTERS)}
+        onReset={() => setFilters(emptyFilters(priceBounds.min, priceBounds.max))}
       />
 
       <section className={styles.main}>
         <header className={styles.head}>
           <div>
             <h1 className={styles.title}>
-              Лампочки <span className={styles.count}>({visible.length} из {products.length})</span>
+              Лампочки{' '}
+              <span className={styles.count}>
+                ({visible.length} из {items.length})
+              </span>
             </h1>
             {query && (
               <p className={styles.queryNote}>
@@ -104,10 +118,10 @@ export default function CatalogPage() {
             <span>Сортировка:</span>
             <select
               value={sort}
-              onChange={(e) => setSort(e.target.value as SortKey)}
+              onChange={(e) => setSort(e.target.value as Sort)}
               aria-label="Сортировка товаров"
             >
-              {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+              {(Object.keys(SORT_LABELS) as Sort[]).map((k) => (
                 <option key={k} value={k}>
                   {SORT_LABELS[k]}
                 </option>
@@ -116,7 +130,13 @@ export default function CatalogPage() {
           </label>
         </header>
 
-        <ProductGrid products={visible} />
+        {status === 'loading' && <p className={styles.note}>Загружаем товары…</p>}
+        {status === 'failed' && (
+          <p className={styles.error}>Не удалось загрузить товары: {error}</p>
+        )}
+        {status !== 'loading' && status !== 'failed' && (
+          <ProductGrid products={visible} />
+        )}
       </section>
     </div>
   )

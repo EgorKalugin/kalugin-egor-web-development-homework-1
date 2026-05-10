@@ -1,32 +1,52 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCart } from '@/context/CartContext'
-import { useOrders } from '@/context/OrdersContext'
-import { findProduct } from '@/data/products'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { loadCart } from '@/store/cartSlice'
+import { placeOrder, resetCreateStatus } from '@/store/ordersSlice'
 import { CartSummary } from '@/components/cart/CartSummary/CartSummary'
 import { CheckoutForm } from '@/components/order/CheckoutForm/CheckoutForm'
 import { formatPrice } from '@/utils/format'
+import type { ShippingInfo } from '@/types/order'
 import styles from './CheckoutPage.module.css'
 
 export default function CheckoutPage() {
-  const { items, subtotal, itemCount, clear } = useCart()
-  const { createOrder } = useOrders()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
 
+  const items = useAppSelector((s) => s.cart.items)
+  const total = useAppSelector((s) => s.cart.total)
+  const cartStatus = useAppSelector((s) => s.cart.status)
+
+  const createStatus = useAppSelector((s) => s.orders.createStatus)
+  const createError = useAppSelector((s) => s.orders.createError)
+  const lastCreatedOrderId = useAppSelector((s) => s.orders.lastCreatedOrderId)
+
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
+
   useEffect(() => {
-    if (items.length === 0) {
+    dispatch(resetCreateStatus())
+  }, [dispatch])
+
+  useEffect(() => {
+    if (cartStatus === 'succeeded' && items.length === 0 && createStatus !== 'succeeded') {
       navigate('/cart', { replace: true })
     }
-  }, [items.length, navigate])
+  }, [cartStatus, items.length, createStatus, navigate])
+
+  useEffect(() => {
+    if (createStatus === 'succeeded' && lastCreatedOrderId !== null) {
+      // Refresh cart (now empty after checkout)
+      dispatch(loadCart())
+      navigate(`/orders/${lastCreatedOrderId}/confirmation`, { replace: true })
+    }
+  }, [createStatus, lastCreatedOrderId, dispatch, navigate])
 
   if (items.length === 0) {
     return null
   }
 
-  const handleSubmit = (shipping: Parameters<typeof createOrder>[1]) => {
-    const order = createOrder(items, shipping)
-    clear()
-    navigate(`/orders/${order.id}/confirmation`, { replace: true })
+  const handleSubmit = (shipping: ShippingInfo) => {
+    dispatch(placeOrder(shipping))
   }
 
   return (
@@ -37,25 +57,26 @@ export default function CheckoutPage() {
         <section className={styles.itemsCard} aria-label="Состав заказа">
           <h2 className={styles.subtitle}>В вашем заказе</h2>
           <ul className={styles.items}>
-            {items.map((it) => {
-              const p = findProduct(it.productId)
-              if (!p) return null
-              return (
-                <li key={it.productId} className={styles.item}>
-                  <span className={styles.itemName}>
-                    {p.name} <span className={styles.itemQty}>× {it.quantity}</span>
-                  </span>
-                  <span>{formatPrice(p.price * it.quantity)}</span>
-                </li>
-              )
-            })}
+            {items.map((it) => (
+              <li key={it.id} className={styles.item}>
+                <span className={styles.itemName}>
+                  {it.productName} <span className={styles.itemQty}>× {it.quantity}</span>
+                </span>
+                <span>{formatPrice(it.subtotal)}</span>
+              </li>
+            ))}
           </ul>
         </section>
 
-        <CheckoutForm onSubmit={handleSubmit} />
+        {createError && <p className={styles.error}>{createError}</p>}
+
+        <CheckoutForm
+          onSubmit={handleSubmit}
+          submitting={createStatus === 'loading'}
+        />
       </div>
 
-      <CartSummary itemCount={itemCount} subtotal={subtotal} />
+      <CartSummary itemCount={itemCount} subtotal={total} />
     </div>
   )
 }

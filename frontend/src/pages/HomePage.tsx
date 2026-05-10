@@ -1,12 +1,26 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { products } from '@/data/products'
 import { ProductGrid } from '@/components/product/ProductGrid/ProductGrid'
 import { Button } from '@/components/ui/Button'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { loadProducts } from '@/store/productsSlice'
 import styles from './HomePage.module.css'
 
 export default function HomePage() {
-  const popular = products.filter((p) => p.badge === 'hit').slice(0, 4)
-  const fresh = products.filter((p) => p.badge === 'new').slice(0, 4)
+  const dispatch = useAppDispatch()
+  const items = useAppSelector((s) => s.products.items)
+  const status = useAppSelector((s) => s.products.itemsStatus)
+  const error = useAppSelector((s) => s.products.itemsError)
+
+  useEffect(() => {
+    dispatch(loadProducts({ limit: 100, sort: 'name_asc' }))
+  }, [dispatch])
+
+  // Highest stock = popular; newest (highest id) = fresh
+  const popular = [...items]
+    .sort((a, b) => b.stockQuantity - a.stockQuantity)
+    .slice(0, 4)
+  const fresh = [...items].sort((a, b) => b.id - a.id).slice(0, 4)
 
   return (
     <div className={`container ${styles.wrap}`}>
@@ -17,8 +31,8 @@ export default function HomePage() {
             Лампочки на любой случай — от классики до умного света
           </h1>
           <p className={styles.bannerCopy}>
-            20 моделей в наличии: LED, галогенные, люминесцентные, накаливания и
-            умные RGB-лампы с управлением через приложение.
+            LED, галогенные, люминесцентные, накаливания и умные RGB-лампы с
+            управлением через приложение.
           </p>
           <div className={styles.bannerCta}>
             <Link to="/catalog">
@@ -37,15 +51,22 @@ export default function HomePage() {
       <section className={styles.promos}>
         <Promo title="Бесплатная доставка" text="При заказе от 1 000 ₽" icon="🚚" />
         <Promo title="Гарантия качества" text="2 года на всю продукцию" icon="🛡" />
-        <Promo title="20 SKU в наличии" text="Отгрузка в день заказа" icon="📦" />
+        <Promo title="Быстрая отгрузка" text="В день оформления заказа" icon="📦" />
       </section>
 
-      <section>
-        <SectionHead title="Популярные товары" linkTo="/catalog" />
-        <ProductGrid products={popular} />
-      </section>
+      {status === 'loading' && <p className={styles.statusNote}>Загружаем товары…</p>}
+      {status === 'failed' && (
+        <p className={styles.statusError}>Ошибка загрузки: {error}</p>
+      )}
 
-      {fresh.length > 0 && (
+      {status === 'succeeded' && popular.length > 0 && (
+        <section>
+          <SectionHead title="Популярные товары" linkTo="/catalog" />
+          <ProductGrid products={popular} />
+        </section>
+      )}
+
+      {status === 'succeeded' && fresh.length > 0 && (
         <section>
           <SectionHead title="Новинки" linkTo="/catalog" />
           <ProductGrid products={fresh} />

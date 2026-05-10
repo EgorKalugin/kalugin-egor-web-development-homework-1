@@ -31,6 +31,9 @@
   color: var(--color-text);
 }
 
+.note { color: var(--color-text-muted); padding: var(--space-4) 0; }
+.error { color: #b91c1c; padding: var(--space-4) 0; }
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;

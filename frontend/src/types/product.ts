@@ -1,16 +1,5 @@
-export type BaseType = 'E14' | 'E27' | 'GU10' | 'GU5.3'
-
-export type CategorySlug =
-  | 'led'
-  | 'halogen'
-  | 'fluorescent'
-  | 'incandescent'
-  | 'smart'
-
-export type ProductBadge = 'hit' | 'new' | 'sale'
-
 export interface Category {
-  slug: CategorySlug
+  id: number
   name: string
   description?: string
 }
@@ -20,14 +9,15 @@ export interface Product {
   sku: string
   name: string
   description: string
-  categorySlug: CategorySlug
+  categoryId: number
   price: number
   stockQuantity: number
   imageUrl?: string
-  wattage: number
-  voltage: number
-  baseType: BaseType
+  wattage?: number
+  voltage?: number
+  baseType?: string
   colorTemp?: number
   lifespanHours?: number
-  badge?: ProductBadge
 }
+
+export type Sort = 'price_asc' | 'price_desc' | 'name_asc'

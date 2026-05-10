@@ -1,14 +1,29 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { useCart } from '@/context/CartContext'
-import { findProduct } from '@/data/products'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { clearCart } from '@/store/cartSlice'
 import { CartLine } from '@/components/cart/CartLine/CartLine'
 import { CartSummary } from '@/components/cart/CartSummary/CartSummary'
 import { Button } from '@/components/ui/Button'
 import styles from './CartPage.module.css'
 
 export default function CartPage() {
-  const { items, subtotal, itemCount, clear } = useCart()
+  const dispatch = useAppDispatch()
   const navigate = useNavigate()
+  const items = useAppSelector((s) => s.cart.items)
+  const total = useAppSelector((s) => s.cart.total)
+  const status = useAppSelector((s) => s.cart.status)
+  const error = useAppSelector((s) => s.cart.error)
+  const mutating = useAppSelector((s) => s.cart.mutating)
+
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0)
+
+  if (status === 'loading' && items.length === 0) {
+    return (
+      <div className={`container ${styles.empty}`}>
+        <h1 className={styles.title}>Загружаем корзину…</h1>
+      </div>
+    )
+  }
 
   if (items.length === 0) {
     return (
@@ -29,22 +44,26 @@ export default function CartPage() {
       <section className={styles.lines}>
         <header className={styles.head}>
           <h1 className={styles.title}>Корзина</h1>
-          <button type="button" className={styles.clear} onClick={clear}>
+          <button
+            type="button"
+            className={styles.clear}
+            onClick={() => dispatch(clearCart())}
+            disabled={mutating}
+          >
             Очистить
           </button>
         </header>
+        {error && <p className={styles.error}>{error}</p>}
         <div className={styles.list}>
-          {items.map((item) => {
-            const product = findProduct(item.productId)
-            if (!product) return null
-            return <CartLine key={item.productId} item={item} product={product} />
-          })}
+          {items.map((item) => (
+            <CartLine key={item.id} item={item} />
+          ))}
         </div>
       </section>
 
       <CartSummary
         itemCount={itemCount}
-        subtotal={subtotal}
+        subtotal={total}
         cta={
           <Button size="lg" fullWidth onClick={() => navigate('/checkout')}>
             Оформить заказ

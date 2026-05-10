@@ -1,31 +1,51 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useState } from 'react'
-import { findProduct } from '@/data/products'
-import { categoryNameBySlug } from '@/data/categories'
-import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
-import { useCart } from '@/context/CartContext'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { addToCart } from '@/store/cartSlice'
+import { loadProductById } from '@/store/productsSlice'
 import { formatPrice } from '@/utils/format'
 import styles from './ProductPage.module.css'
 
 export default function ProductPage() {
   const { productId } = useParams<{ productId: string }>()
   const id = Number(productId)
-  const product = Number.isFinite(id) ? findProduct(id) : undefined
-  const { addItem } = useCart()
+  const dispatch = useAppDispatch()
+  const product = useAppSelector((s) =>
+    Number.isFinite(id) ? s.products.byId[id] : undefined,
+  )
+  const status = useAppSelector((s) => s.products.detailStatus)
+  const error = useAppSelector((s) => s.products.detailError)
+  const categories = useAppSelector((s) => s.products.categories)
+  const cartMutating = useAppSelector((s) => s.cart.mutating)
+  const cartError = useAppSelector((s) => s.cart.error)
+  const cartMessage = useAppSelector((s) => s.cart.lastMessage)
+
   const [qty, setQty] = useState(1)
+
+  useEffect(() => {
+    if (Number.isFinite(id)) {
+      dispatch(loadProductById(id))
+    }
+  }, [dispatch, id])
+
+  if (status === 'loading' && !product) {
+    return <div className={`container ${styles.notFound}`}>Загружаем товар…</div>
+  }
 
   if (!product) {
     return (
       <div className={`container ${styles.notFound}`}>
         <h1>Товар не найден</h1>
-        <p>Возможно, его сняли с продажи. Загляните в каталог.</p>
+        <p>{error ?? 'Возможно, его сняли с продажи. Загляните в каталог.'}</p>
         <Link to="/catalog" className={styles.backLink}>← В каталог</Link>
       </div>
     )
   }
 
   const outOfStock = product.stockQuantity <= 0
+  const categoryName =
+    categories.find((c) => c.id === product.categoryId)?.name ?? '—'
 
   return (
     <div className={`container ${styles.wrap}`}>
@@ -39,11 +59,6 @@ export default function ProductPage() {
         <div className={styles.gallery}>
           <div className={styles.image}>
             <span className={styles.imageEmoji} aria-hidden>💡</span>
-            {product.badge && (
-              <span className={styles.badge}>
-                <Badge kind={product.badge} />
-              </span>
-            )}
           </div>
         </div>
 
@@ -53,12 +68,12 @@ export default function ProductPage() {
           <p className={styles.description}>{product.description}</p>
 
           <dl className={styles.specs}>
-            <dt>Категория</dt><dd>{categoryNameBySlug(product.categorySlug)}</dd>
-            <dt>Цоколь</dt><dd>{product.baseType}</dd>
-            <dt>Мощность</dt><dd>{product.wattage} Вт</dd>
-            <dt>Напряжение</dt><dd>{product.voltage} В</dd>
-            {product.colorTemp && (<><dt>Цветовая температура</dt><dd>{product.colorTemp} K</dd></>)}
-            {product.lifespanHours && (<><dt>Срок службы</dt><dd>{product.lifespanHours.toLocaleString('ru-RU')} ч</dd></>)}
+            <dt>Категория</dt><dd>{categoryName}</dd>
+            {product.baseType && (<><dt>Цоколь</dt><dd>{product.baseType}</dd></>)}
+            {product.wattage !== undefined && (<><dt>Мощность</dt><dd>{product.wattage} Вт</dd></>)}
+            {product.voltage !== undefined && (<><dt>Напряжение</dt><dd>{product.voltage} В</dd></>)}
+            {product.colorTemp !== undefined && (<><dt>Цветовая температура</dt><dd>{product.colorTemp} K</dd></>)}
+            {product.lifespanHours !== undefined && (<><dt>Срок службы</dt><dd>{product.lifespanHours.toLocaleString('ru-RU')} ч</dd></>)}
             <dt>В наличии</dt>
             <dd>{outOfStock ? 'Нет' : `${product.stockQuantity} шт.`}</dd>
           </dl>
@@ -81,12 +96,21 @@ export default function ProductPage() {
             </div>
             <Button
               size="lg"
-              onClick={() => addItem(product.id, qty)}
-              disabled={outOfStock}
+              onClick={() => dispatch(addToCart({ productId: product.id, quantity: qty }))}
+              disabled={outOfStock || cartMutating}
             >
-              {outOfStock ? 'Нет в наличии' : 'Добавить в корзину'}
+              {outOfStock
+                ? 'Нет в наличии'
+                : cartMutating
+                  ? 'Добавляем…'
+                  : 'Добавить в корзину'}
             </Button>
           </div>
+
+          {cartError && <p className={styles.error}>{cartError}</p>}
+          {cartMessage && !cartError && (
+            <p className={styles.success}>{cartMessage}</p>
+          )}
         </div>
       </div>
     </div>

@@ -1,8 +1,11 @@
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useOrders } from '@/context/OrdersContext'
+import { useAppDispatch, useAppSelector } from '@/store'
+import { advanceOrderStatus, loadOrder } from '@/store/ordersSlice'
 import {
   ORDER_STATUS_FLOW,
   ORDER_STATUS_LABELS,
+  type OrderStatus,
 } from '@/types/order'
 import { OrderStatusTimeline } from '@/components/order/OrderStatusTimeline/OrderStatusTimeline'
 import { Button } from '@/components/ui/Button'
@@ -11,15 +14,29 @@ import styles from './OrderTrackingPage.module.css'
 
 export default function OrderTrackingPage() {
   const { orderId } = useParams<{ orderId: string }>()
-  const { getOrder, advanceStatus } = useOrders()
   const id = Number(orderId)
-  const order = Number.isFinite(id) ? getOrder(id) : undefined
+  const dispatch = useAppDispatch()
+  const order = useAppSelector((s) =>
+    Number.isFinite(id) ? s.orders.byId[id] : undefined,
+  )
+  const status = useAppSelector((s) => s.orders.detailStatus)
+  const error = useAppSelector((s) => s.orders.detailError)
+
+  useEffect(() => {
+    if (Number.isFinite(id)) {
+      dispatch(loadOrder(id))
+    }
+  }, [dispatch, id])
+
+  if (status === 'loading' && !order) {
+    return <div className={`container ${styles.missing}`}>Загружаем заказ…</div>
+  }
 
   if (!order) {
     return (
       <div className={`container ${styles.missing}`}>
         <h1>Заказ не найден</h1>
-        <p>Возможно, страница была перезагружена. Заказы хранятся в памяти текущей сессии.</p>
+        <p>{error ?? 'Возможно, ссылка устарела.'}</p>
         <Link to="/catalog">
           <Button>В каталог</Button>
         </Link>
@@ -27,10 +44,14 @@ export default function OrderTrackingPage() {
     )
   }
 
+  const idx = ORDER_STATUS_FLOW.indexOf(order.status)
   const isFinal =
     order.status === 'delivered' ||
     order.status === 'cancelled' ||
-    ORDER_STATUS_FLOW.indexOf(order.status) === ORDER_STATUS_FLOW.length - 1
+    idx === ORDER_STATUS_FLOW.length - 1
+
+  const nextStatus: OrderStatus | null =
+    idx >= 0 && idx < ORDER_STATUS_FLOW.length - 1 ? ORDER_STATUS_FLOW[idx + 1] : null
 
   return (
     <div className={`container ${styles.wrap}`}>
@@ -52,13 +73,18 @@ export default function OrderTrackingPage() {
       <section className={styles.section}>
         <h2 className={styles.subtitle}>Статус заказа</h2>
         <OrderStatusTimeline order={order} />
-        {!isFinal && (
+        {!isFinal && nextStatus && (
           <div className={styles.simulate}>
-            <Button variant="secondary" onClick={() => advanceStatus(order.id)}>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                dispatch(advanceOrderStatus({ id: order.id, status: nextStatus }))
+              }
+            >
               Симулировать следующий статус →
             </Button>
             <span className={styles.simulateNote}>
-              Демонстрационная кнопка вместо реального бэкенда
+              Демонстрация смены статуса (PATCH /orders/:id/status)
             </span>
           </div>
         )}
@@ -84,8 +110,8 @@ export default function OrderTrackingPage() {
       <section className={styles.section}>
         <h2 className={styles.subtitle}>Состав</h2>
         <ul className={styles.items}>
-          {order.items.map((item) => (
-            <li key={item.productId} className={styles.item}>
+          {order.items.map((item, idx) => (
+            <li key={idx} className={styles.item}>
               <span>
                 {item.productName}{' '}
                 <span className={styles.muted}>× {item.quantity}</span>
